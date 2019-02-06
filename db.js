@@ -5,14 +5,14 @@ const SimpleTokenModel = require('./models/simpleToken.js');
 
 let db;
 // PRODUCTION or Locally running backend through PROXY
-console.log(process.env.NODE_ENV);
+console.log(process.env);
 if(process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'proxy'){
   db = new Sequelize(process.env.SQL_DATABASE, process.env.SQL_USER, process.env.SQL_PASSWORD, {
     dialect: 'postgres',
     protocol: 'postgres',
     storage: "./session.postgres",
     operatorsAliases: false,
-    host: `/cloudsql/${process.env.INSTANCE_CONNECTION_NAME}`,
+    host: `ec2-54-235-160-57.compute-1.amazonaws.com`,
     //dialectOptions : { ssl: true },
     pool: {
       max: 5,
