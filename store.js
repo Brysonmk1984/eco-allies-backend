@@ -16,10 +16,12 @@ const sessionStore = session({
   saveUninitialized: false,
   proxy : true, // add this when behind a reverse proxy, if you need secure cookies
   cookie: {
-  secure: process.env.NODE_ENV === 'production' ? true : false, // Secure is Recommeneded, However it requires an HTTPS enabled website (SSL Certificate)
-  maxAge: 864000000, // 10 Days in miliseconds
-  httpOnly: false
-},
+    //secure: process.env.NODE_ENV === 'production' ? true : false, // Secure is Recommeneded, However it requires an HTTPS enabled website (SSL Certificate)
+    secure: false,
+    maxAge: null,
+    httpOnly: true,
+    sameSite: false
+  },
   store
 });
 
