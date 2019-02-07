@@ -4,27 +4,27 @@ const RetrievalCodeModel = require('./models/retrievalCode.js');
 const SimpleTokenModel = require('./models/simpleToken.js');
 
 let db;
+let dbUrl;
+let sequelizeSettings;
 // PRODUCTION or Locally running backend through PROXY
-console.log(process.env);
-if(process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'proxy'){
-  db = new Sequelize(process.env.SQL_DATABASE, process.env.SQL_USER, process.env.SQL_PASSWORD, {
+if(process.env.NODE_ENV === 'production'){
+  sequelizeSettings = {
     dialect: 'postgres',
     protocol: 'postgres',
     storage: "./session.postgres",
     operatorsAliases: false,
-    host: `ec2-54-235-160-57.compute-1.amazonaws.com`,
-    //dialectOptions : { ssl: true },
+        //host: `/cloudsql/${process.env.INSTANCE_CONNECTION_NAME}`,
     pool: {
       max: 5,
       min: 0,
       acquire: 30000,
       idle: 10000
-    },
-  });
-  
+    }
+  }
+  dbUrl = process.env.DATABASE_URL;
 // DEVELOPMENT
 }else{
-  const sequelizeSettings = {
+  sequelizeSettings = {
     dialect: 'postgres',
     protocol: 'postgres',
     storage: "./session.postgres",
@@ -36,9 +36,11 @@ if(process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'proxy'){
       idle: 10000
     }
   }
-  const dbUrl = process.env.NODE_ENV === 'production' ? process.env.DATABASE_URL : "postgres://admin:admin@localhost/ecoAllies";
-  db = new Sequelize(dbUrl, sequelizeSettings);
+  
+  dbUrl = "postgres://admin:admin@localhost/ecoAllies";
+
 }
+db = new Sequelize(dbUrl, sequelizeSettings);
 
 db.sync();
 
