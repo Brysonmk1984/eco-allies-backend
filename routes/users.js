@@ -1,11 +1,13 @@
 const express = require('express');
 const router = express.Router(); 
 const User = require('../db').User;
+const jwt = require('jsonwebtoken');
 const passport = require('passport');
 // express-validator
 const { buildCheckFunction, validationResult } = require('express-validator/check');
 const checkBody = buildCheckFunction(['body']);
-const store = require('../store').store;
+
+
 // REGISTER NEW ACCOUNT
 router.post('/register', [
   checkBody('email', 'The email you entered is invalid, please try again.').isEmail(),
@@ -50,20 +52,14 @@ router.post('/register', [
 // LOGIN TO EXISTING ACCOUNT
 router.post('/login', function(req, res, next){
   console.log('trying to log in');
-  passport.authenticate('local',function(err, u, info){
-    store.get(req.sessionID, (err,sess)=>{
-      if(err){
-        console.log('Error retrieving session - ', err);
-        return res.status(400).send('Error Retrieving Session...');
-      }
-    })
+  passport.authenticate('local', { session : false }, function(err, u, info){
 
     if (!u.email) {
       console.log('No user found...');
       return res.status(401).send('Email or Password is incorrect.');
     }
-    // Manually establish the session...
-    req.login(u.email, function(err) {
+
+    req.login(u.email, { session : false }, function(err) {
       if (err) return next(err);
       User.find({
         where : {
@@ -71,109 +67,28 @@ router.post('/login', function(req, res, next){
         },
         attributes:['publicEthKey', 'fullAccount', 'username']
       }).then((user, err) => {
+
+        const token = jwt.sign({ email : u.email }, process.env.JWTSECRET);
         res.json({
-        sessionId : req.sessionID,
         email : u.email,
         username : user.dataValues.username,
         publicEthKey : user.dataValues.publicEthKey,
         fullAccount : user.dataValues.fullAccount,
         isAuthenticated : true,
         requestType : 'POST',
-        success : true
+        success : true,
+        token
         });
         next();
+
       });
     });
   })(req, res, next);
 });
 router.get('/logout', function(req, res){
-  console.log('sessid-1',req.sessionID);
-  req.session.destroy(((err)=>{
-    if(err){
-      console.log('Error destroying session - ', err);
-      res.json({error : err, isAuthenticated : true, requestType : 'GET', success : false});
-    }
-  }));
+
   req.logout();
   res.json({isAuthenticated : false, requestType : 'GET', success : true});
-});
-
-
-/*
-* Check the request if the user is authenticated.
-* Return an error message if not, otherwise keep going :)
-*/
-// router.use(function(req, res, next){
-//   console.log('REQUSER -- ', req.user);
-//   // isAuthenticated is set by `deserializeUser()`
-//   if (!req.isAuthenticated || !req.isAuthenticated()) {
-//       //console.log('BEFORE error', req.isAuthenticated());
-//       res.status(401).send({
-//       success: false,
-//       message: 'You are not logged in',
-//       requestType : 'GET'
-//       });
-//   }else{
-//       next();
-//   }
-// });
-
-router.get('/logged-in', function(req, res, next){
-  console.log('CHECKING IF LOGGED IN', req.user);
-  if(!req.user){
-    res.status(403).send('You are not logged in!');
-    return;
-  }
-
-  User.find({
-    where : {
-    email : req.user
-  },
-  attributes:['publicEthKey', 'fullAccount', 'username']
-  })
-  .then((user, err)=>{
-    if (err) return next(err);
-      res.header('Access-Control-Allow-Credentials', 'true');
-      res.status(200).send({
-      success: true,
-      message: `You are logged in as ${req.user}`,
-      email: req.user,
-      username : user.dataValues.username,
-      publicEthKey : user.dataValues.publicEthKey,
-      fullAccount : user.dataValues.fullAccount,
-      requestType : 'GET'
-    });
-    next();
-  });
-});
-
-router.post('/logged-in', function(req, res, next){
-  console.log('CHECKING IF LOGGED IN!!!!', req.user);
-  if(!req.user){
-    res.status(403).send('You are not logged in!');
-    return;
-  }
-
-  User.find({
-    where : {
-    email : req.user
-  },
-  attributes:['publicEthKey', 'fullAccount', 'username']
-  })
-  .then((user, err)=>{
-    if (err) return next(err);
-      res.header('Access-Control-Allow-Credentials', 'true');
-      res.status(200).send({
-      success: true,
-      message: `You are logged in as ${req.user}`,
-      email: req.user,
-      username : user.dataValues.username,
-      publicEthKey : user.dataValues.publicEthKey,
-      fullAccount : user.dataValues.fullAccount,
-      requestType : 'GET'
-    });
-    next();
-  });
 });
 
 module.exports = router;

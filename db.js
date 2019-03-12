@@ -11,7 +11,6 @@ if(process.env.NODE_ENV === 'production'){
   sequelizeSettings = {
     dialect: 'postgres',
     protocol: 'postgres',
-    storage: "./session.postgres",
     operatorsAliases: false,
         //host: `/cloudsql/${process.env.INSTANCE_CONNECTION_NAME}`,
     pool: {
@@ -27,7 +26,6 @@ if(process.env.NODE_ENV === 'production'){
   sequelizeSettings = {
     dialect: 'postgres',
     protocol: 'postgres',
-    storage: "./session.postgres",
     operatorsAliases: false,
     pool: {
       max: 5,

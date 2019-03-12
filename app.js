@@ -7,7 +7,6 @@ const dbUrl = process.env.NODE_ENV === 'production' ? process.env.DATABASE_URL :
 const sequelizeSettings = {
     dialect: 'postgres',
     protocol: 'postgres',
-    storage: "./session.postgres",
     pool: {
     max: 5,
     min: 0,
@@ -24,17 +23,13 @@ if(process.env.NODE_ENV === 'production'){
 const db = new Sequelize(dbUrl, sequelizeSettings);
 // parsers
 const bodyParser = require("body-parser");
-const cookieParser = require("cookie-parser");
 // express-validator
 const { buildCheckFunction, validationResult } = require('express-validator/check');
 const checkBody = buildCheckFunction(['body']);
-// express-session & passport
-const session = require('express-session');
+// passport
+
 const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
-const flash = require('connect-flash');
-// initalize sequelize with session store
-const SequelizeStore = require('connect-session-sequelize')(session.Store);
 const bcrypt = require('bcrypt-nodejs');
 const UserModel = require('./models');
 const user = UserModel(db, Sequelize);
@@ -44,34 +39,10 @@ module.exports = function(app){
     app.use(bodyParser.json());
     app.use(bodyParser.urlencoded({ extended: false }));
     app.use(express.static(path.join(__dirname, 'public')));
-    app.use(cookieParser('1123ddsgfdrtrthsds'));
-    const store = new SequelizeStore({
-    db,
-    checkExpirationInterval: 15 * 60 * 1000, // The interval at which to cleanup expired sessions in milliseconds.
-    expiration: 864000000, // 10 Days in miliseconds
-    });
+   
     app.set('trust proxy', 1);
-    app.use(session({
-        key: process.env.NODE_ENV === 'production' ? '__cfduid' : 'sid',
-        secret: '1123ddsgfdrtrthsds',
-        resave: false,
-        saveUninitialized: true,
-        proxy : true, // add this when behind a reverse proxy, if you need secure cookies
-        cookie: {
-        secure: process.env.NODE_ENV === 'production' ? true : false, // Secure is Recommeneded, However it requires an HTTPS enabled website (SSL Certificate)
-        maxAge: 864000000, // 10 Days in miliseconds
-        httpOnly: false
-    },
-        store
-    }));
     app.use(passport.initialize());
-    app.use(passport.session());
-    //app.use(flash());
-    // app.use(function(req,res,next){
-    // //console.log('IS AUTHENTICATED - ', req.isAuthenticated());
-    // res.locals.isAuthenticated = req.isAuthenticated();
-    // next();
-    // });
+
     passport.use(new LocalStrategy({
     usernameField:'email', passwordField:'password'
     },
@@ -142,18 +113,8 @@ module.exports = function(app){
     });
     // LOGIN TO EXISTING ACCOUNT
     app.post('/login', function(req, res, next){
+        console.log('LOOK');
         passport.authenticate('local',function(err, u, info){
-        store.get(req.sessionID, (err,sess)=>{
-            if(err){
-                console.log('Error retrieving session - ', err);
-                return res.json({
-                error: "Error retrieving session ",
-                loggedIn : false,
-                requestType : 'POST',
-                success : false
-                });
-            }
-        })
         if (err) return next(err);
         if (!u.email) {
             console.log('No user found...');
@@ -164,7 +125,7 @@ module.exports = function(app){
                 success : false
             });
         }
-        // Manually establish the session...
+        
         req.login(u.email, function(err) {
             if (err) return next(err);
             user.find({
@@ -174,7 +135,6 @@ module.exports = function(app){
                 attributes:['publicEthKey']
             }).then((user, err) => {
                 res.json({
-                sessionId : req.sessionID,
                 user : user.email,
                 publicEthKey : user.dataValues.publicEthKey,
                 loggedIn : true,
@@ -189,13 +149,6 @@ module.exports = function(app){
         })(req, res, next);
     });
     app.get('/logout', function(req, res){
-        //console.log('sessid-1',req.sessionID);
-        req.session.destroy(((err)=>{
-            if(err){
-                console.log('Error destroying session - ', err);
-                res.json({error : err, loggedIn : true, requestType : 'GET', success : false});
-            }
-        }));
         req.logout();
         res.json({loggedIn : false, requestType : 'GET', success : true});
     });
@@ -256,9 +209,4 @@ module.exports = function(app){
             });
         });
     };
-    passport.serializeUser(function(userId, done) {
-        done(null, userId);
-    });
-    passport.deserializeUser(function(userId, done) {
-    done(null, userId);
 });

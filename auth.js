@@ -1,7 +1,34 @@
+const LocalStrategy = require('passport-local').Strategy;
+const passportJWT = require("passport-jwt");
+const JWTStrategy   = passportJWT.Strategy;
+const ExtractJWT = passportJWT.ExtractJwt;
 const bcrypt = require('bcrypt-nodejs');
 const User = require('./db').User;
 
-const auth = function(passport, LocalStrategy){
+const auth = function(passport){
+  passport.use(new JWTStrategy({
+    jwtFromRequest: ExtractJWT.fromAuthHeaderAsBearerToken(),
+    secretOrKey   : process.env.JWTSECRET
+  },
+  function (jwtPayload, cb) {
+      //find the user in db if needed. This functionality may be omitted if you store everything you'll need in JWT payload.
+      return User.find({
+        where : {
+          email : jwtPayload.email
+        },
+        attributes : ['publicEthKey', 'fullAccount', 'username', 'email']
+      })
+      .then(user => {
+        console.log('JTW USER', user);
+          return cb(null, user);
+      })
+      .catch(err => {
+          return cb(err);
+      });
+  }
+  ));
+
+
   passport.use(new LocalStrategy({
     usernameField:'email', passwordField:'password'
     },
@@ -34,21 +61,7 @@ const auth = function(passport, LocalStrategy){
     }
   ));
 
-  // Gets information from the user object and serilizes it in a session
-  // Happends when a user logs in
-  passport.serializeUser(function(userId, done) {
-    console.log('SERIALIZE USER', userId);
-    // userId in this case is the user email
-    // accessible in routes by req.session.passport.userId
-    done(null, userId);
-  });
-    
-  // Turns the serilized user object back into a JS user object for use in the rest of the code
-  // Happends any time a user visists a page that makes a call to the backend
-  passport.deserializeUser(function(userId, done) {
-    console.log('DESERIALIZE USER ', userId);
-    done(null, userId);
-  });
+
 
 };
 

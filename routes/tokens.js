@@ -6,7 +6,7 @@ const sendMail = require('../mail.js');
 
 // LOGIN TO EXISTING ACCOUNT
 router.post('/retrieval-code', function(req, res, next){
-  // Manually establish the session...
+
   RetrievalCode.find({
     where : {
       code : req.body.code
@@ -42,7 +42,7 @@ router.post('/retrieval-code', function(req, res, next){
 });
 
 router.post('/check-param', function(req, res, next){
-  // Manually establish the session...
+
   RetrievalCode.find({
     where : {
       qrParam : req.body.param
