@@ -16,7 +16,7 @@ router.post('/register', [
   //checkBody("password", "Password must include one lowercase character, one uppercase character, a number, and a special character.").matches(/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?!.* )(?=.*[^a-zA-Z0-9]).{8,}$/, "i"),
   checkBody('passwordConfirm', 'Password must be between 8-100 characters long.').isLength({ min: 8, max: 100 }),
   checkBody('passwordConfirm', 'Passwords do not match, please try again.').custom((value, { req }) => value === req.body.password),
-  ], function(req, res){
+  ], function(req, res, next){
   const errors = validationResult(req);
   console.log('ERRORS!!', errors.array());
   if(!errors.isEmpty()){
@@ -34,18 +34,24 @@ router.post('/register', [
     userObj.fullAccount = true;
     userObj.publicEthKey = req.body.publicEthKey;
   }
-  console.log('UO', userObj, req.body.password.length);
   User.create(userObj)
-  .then((user)=>{console.log('u2', user);
-    req.login(user.id, function(err){
-      if(err){
-        res.json({ requestType : 'POST', success : false, error : err });
-      }
-      res.json({ requestType : 'POST', success : true, user });
+  .then((user)=>{
+    const token = jwt.sign({ email : user.email }, process.env.JWTSECRET);
+    res.json({
+      email : user.email,
+      username : user.dataValues.username,
+      publicEthKey : user.dataValues.publicEthKey,
+      fullAccount : user.dataValues.fullAccount,
+      isAuthenticated : true,
+      requestType : 'POST',
+      success : true,
+      token
     });
+    next();
   })
-  .catch((err) =>{console.log('CAUGHT ERR', err);
-    res.json({ requestType : 'POST', success : false, error : err });
+  .catch((err) =>{//console.log('CAUGHT ERR', err.errors);
+
+    res.json({ requestType : 'POST', success : false, error : [{ type : 'error', message : 'Validation Error - Account already in use.' }]});
   });
 });
 
