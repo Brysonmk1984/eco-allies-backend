@@ -7,13 +7,13 @@ router.get('/logged-in', function(req, res, next){
 
   
   passport.authenticate('jwt', { session : false }, (err, data) => {
-    console.log('in jwt auth');
+    //console.log('in jwt auth');
     if(err){
       console.log(err);
       res.status(401).send('There was an error with JWT');
       return;
     }
-    console.log('USER', data.dataValues);
+    //console.log('USER', data.dataValues);
     const user = data.dataValues;
     if (err) return next(err);
     //res.header('Access-Control-Allow-Credentials', 'true');

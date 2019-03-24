@@ -6,7 +6,7 @@ const passport = require('passport');
 // express-validator
 const { buildCheckFunction, validationResult } = require('express-validator/check');
 const checkBody = buildCheckFunction(['body']);
-
+const sendContactEmail = require('../mail.js').sendContactEmail;
 
 // REGISTER NEW ACCOUNT
 router.post('/register', [
@@ -95,6 +95,20 @@ router.get('/logout', function(req, res){
 
   req.logout();
   res.json({isAuthenticated : false, requestType : 'GET', success : true});
+});
+
+router.post('/contact', function(req, res, next){
+  console.log(sendContactEmail);
+  new Promise((resolve, reject) => {
+    sendContactEmail({ email : req.body.email, message : req.body.message, accountInfo : req.body.accountInfo ? req.body.accountInfo : 'User not logged in.' }, resolve, reject);
+  }).then((data) =>{
+    res.json({
+      success : true,
+      requestType : 'POST',
+      info : data
+    });
+    next();
+  });
 });
 
 module.exports = router;

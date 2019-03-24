@@ -19,7 +19,7 @@ const auth = function(passport){
         attributes : ['publicEthKey', 'fullAccount', 'username', 'email']
       })
       .then(user => {
-        console.log('JTW USER', user);
+        //console.log('JTW USER', user);
           return cb(null, user);
       })
       .catch(err => {

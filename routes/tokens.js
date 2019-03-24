@@ -2,33 +2,40 @@ const express = require('express');
 const router = express.Router(); 
 const RetrievalCode = require('../db').RetrievalCode;
 const SimpleToken = require('../db').SimpleToken;
-const sendMail = require('../mail.js');
+const sendProofEmail = require('../mail.js').sendProofEmail;
 
-// LOGIN TO EXISTING ACCOUNT
+// 9 digit code for unlocking allies
 router.post('/retrieval-code', function(req, res, next){
 
+  // If not already used, update DB and return a success response
   RetrievalCode.find({
     where : {
       code : req.body.code
     },
-    attributes:['code', 'claimed', 'claimedBy']
-  }).then((codeData, err) => {
-    if(codeData){
-      if(codeData.claimed){
+  }).then((matchingCode, err) => {
+    if(matchingCode){
+      if(matchingCode.claimed){
         res.json({
           error: 'Invalid Code',
-          claimedBy : codeData.claimedBy,
+          claimedBy : matchingCode.claimedBy,
           requestType : 'POST',
           success : false
         });
       }else{
+        matchingCode.update({
+          claimed: true,
+          claimedBy: req.body.email
+        }, {attributes : ['code', 'claimed', 'claimedBy'] }
+      ).then((updatedCode) =>{
         res.json({
-          code : codeData.code,
-          claimed : codeData.claimed,
-          claimedBy : codeData.claimedBy,
+          code : updatedCode.code,
+          claimed : updatedCode.claimed,
+          claimedBy : updatedCode.claimedBy,
           requestType : 'POST',
           success : true
         });
+        next();
+      }); 
       }
     }else{
       res.json({
@@ -36,11 +43,13 @@ router.post('/retrieval-code', function(req, res, next){
         requestType : 'POST',
         success : false
       });
+      next();
     }
-    next();
+    
   });
 });
 
+// Check QR code parameter and return 9 digit token code if it's valid
 router.post('/check-param', function(req, res, next){
 
   RetrievalCode.find({
@@ -83,7 +92,7 @@ router.post('/check-param', function(req, res, next){
 
 router.post('/proof', function(req, res, next){
   new Promise((resolve, reject) =>{
-    sendMail({filename : req.files.file.name, message : req.body.message, file : req.files.file.data}, resolve, reject);
+    sendProofEmail({email: req.body.email, filename : req.files.file.name, message : req.body.message, file : req.files.file.data}, resolve, reject);
   }).then((data) =>{
     res.json({
       success : true,
