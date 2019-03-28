@@ -49,9 +49,14 @@ router.post('/register', [
     });
     next();
   })
-  .catch((err) =>{//console.log('CAUGHT ERR', err.errors);
+  .catch((err) =>{
+    const errors = err.errors.map((e) =>{
 
-    res.json({ requestType : 'POST', success : false, error : [{ type : 'error', message : 'Validation Error - Account already in use.' }]});
+      return { type : 'error', message : `Validation Error - ${e.path} field already in use!`};
+    });
+    console.log('ARRAY O ERRORS', errors);
+
+    res.json({ requestType : 'POST', success : false, error : errors });
   });
 });
 

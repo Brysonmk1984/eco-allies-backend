@@ -46,7 +46,30 @@ const UserModel = function(db, DataTypes){
     },
     publicEthKey : {
       type : DataTypes.STRING(42),
-      allowNull: true
+      allowNull: true,
+      validate : {
+        notEmpty :true,
+        isUnique : function(value, next){
+          User.find({
+            where: {publicEthKey: value},
+            attributes: ['id']
+          })
+          .done(function(error, user) {
+            if (error){console.log('EEE', error);
+              // Some unexpected error occured with the find method.
+              return next(error);
+            }
+            if (user){console.log('uuuser', user);
+              // We found a user with this email address.
+              // Pass the error to the next method.
+              return next('Ethereum address already in use!');
+            }
+            // If we got this far, the email address hasn't been used yet.
+            // Call next with no arguments when validation is successful.
+            next();
+          });
+        }
+      }
     },
     fullAccount : {
       type : DataTypes.BOOLEAN,
